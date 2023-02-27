@@ -19,12 +19,12 @@ class ProductScreen extends StatefulWidget {
 
 class _ProductScreenState extends State<ProductScreen> {
   var categoryList = [
-    'Umum',
-    "Fashion Pria",
-    "Fashion Wanita",
-    "Skin Care",
-    "Makanan",
-    "Minuman"
+    'Kesehatan',
+    "Kecantikan",
+    "Pakaian",
+    "Obat",
+    "Herbal",
+    "Makanan"
   ];
 
   var _address = TextEditingController();
@@ -34,6 +34,9 @@ class _ProductScreenState extends State<ProductScreen> {
   var role = "";
   var category = "";
   var search = "";
+
+  String name = "";
+  String phone = "";
 
   @override
   void initState() {
@@ -51,6 +54,8 @@ class _ProductScreenState extends State<ProductScreen> {
         uid = value.data()!["uid"];
         address = value.data()!["address"];
         role = value.data()!["role"];
+        name = value.data()!["name"];
+        phone = value.data()!["phone"];
       });
     });
   }
@@ -110,10 +115,13 @@ class _ProductScreenState extends State<ProductScreen> {
                                     onTap: () {
                                       search = _search.text.toString();
                                       setState(() {});
-                                      },
+                                    },
                                     child: Text(
                                       'Cari',
-                                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold,),
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -191,33 +199,47 @@ class _ProductScreenState extends State<ProductScreen> {
                   margin: EdgeInsets.symmetric(horizontal: 16),
                   height: MediaQuery.of(context).size.height * 0.76,
                   child: StreamBuilder(
-                    stream: ((category == "") && search == "")
+                    stream: (category == "")
                         ? FirebaseFirestore.instance
                             .collection('product')
                             .snapshots()
-                        : (category != "" && search == "")
-                            ? FirebaseFirestore.instance
-                                .collection('product')
-                                .where("category", isEqualTo: category)
-                                .snapshots()
-                            : (category == "" && search != "")
-                                ? FirebaseFirestore.instance
-                                    .collection('product')
-                                    .where("name", arrayContains: search)
-                                    .snapshots()
-                                : FirebaseFirestore.instance
-                                    .collection('product')
-                                    .where("name", arrayContains: search)
-                                    .where("category", isEqualTo: category)
-                                    .snapshots(),
+                        : FirebaseFirestore.instance
+                            .collection('product')
+                            .where("category", isEqualTo: category)
+                            .snapshots(),
                     builder: (BuildContext context,
                         AsyncSnapshot<QuerySnapshot> snapshot) {
                       if (snapshot.hasData) {
-                        return (snapshot.data!.size > 0)
+                        List<DocumentSnapshot> dataList = [];
+                        dataList.addAll(snapshot.data!.docs);
+
+                        if (search != "") {
+                          var i = 0;
+                          snapshot.data!.docs.forEach((element) {
+                            String name = snapshot.data!.docs[i]['name'].toString().toLowerCase();
+                            if (!name.contains(search)) {
+                              try {
+                                print("deteted wanbt: $i");
+                                dataList.remove(dataList[i]);
+                              }catch(err) {
+                                print("Error: $err");
+                              }
+                            }
+                            i++;
+                          });
+                        }
+
+
+                        return (dataList.length > 0)
                             ? ProductList(
-                                document: snapshot.data!.docs,
+                                document: dataList,
                                 role: role,
-                                categoryList: categoryList)
+                                categoryList: categoryList,
+                        uid: uid,
+                        name: name,
+                        phone: phone,
+                        address: address,
+                        )
                             : _emptyData();
                       } else {
                         return _emptyData();
@@ -408,10 +430,11 @@ class _ProductScreenState extends State<ProductScreen> {
                           decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(7),
                               color: Colors.grey),
-                          child: Text((category == "") ? "Tidak" : "Hapus Kategori",
+                          child: Text(
+                              (category == "") ? "Tidak" : "Hapus Kategori",
                               style: TextStyle(color: Colors.white))),
                       onTap: () {
-                        if(category != "") {
+                        if (category != "") {
                           category = "";
                           setState(() {});
                         }
@@ -432,13 +455,12 @@ class _ProductScreenState extends State<ProductScreen> {
                               style: TextStyle(color: Colors.white))),
                       onTap: () async {
                         // Implement saving logic here
-                        if(category != "") {
+                        if (category != "") {
                           setState(() {});
                           Navigator.of(context).pop();
-                        }else {
+                        } else {
                           toast('Choose category first');
                         }
-
                       },
                     ),
                   ],

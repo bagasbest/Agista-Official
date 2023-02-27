@@ -115,9 +115,7 @@ class DatabaseService {
     String category,
   ) async {
     try {
-
       print(productId);
-
 
       await FirebaseFirestore.instance
           .collection('product')
@@ -163,6 +161,91 @@ class DatabaseService {
         'stock_buy': int.parse(text)
       });
 
+      return true;
+    } catch (error) {
+      print(error.toString());
+      return false;
+    }
+  }
+
+  static createTransaction(
+      int transactionId,
+      String uid,
+      String name,
+      String phone,
+      String address,
+      num totalTransaction,
+      String dateTime,
+      String status) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('transaction')
+          .doc(transactionId.toString())
+          .set({
+        'transaction_id': transactionId.toString(),
+        'user_id': uid,
+        'user_name': name,
+        'user_phone': phone,
+        'user_address': address,
+        'totalTransaction': totalTransaction,
+        'date_time': dateTime,
+        'status': status,
+      });
+
+      return true;
+    } catch (error) {
+      print(error.toString());
+      return false;
+    }
+  }
+
+  static createTransactionProduct(
+    String transaction_product_id,
+    String transaction_id,
+    String product_id,
+    String user_id,
+    String name,
+    num price,
+    num stock_before,
+    String description,
+    String category,
+    List image,
+    num sold,
+    num disc_percentage,
+    num disc_price,
+    num stock_buy,
+  ) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('transaction_product')
+          .doc(transaction_product_id)
+          .set({
+        'transaction_product_id': transaction_product_id,
+        'transaction_id': transaction_id,
+        'product_id': product_id,
+        'user_id': user_id,
+        'name': name,
+        'price': price,
+        'stock_before': stock_before,
+        'description': description,
+        'category': category,
+        'image': image,
+        'sold': sold,
+        'disc_percentage': disc_percentage,
+        'disc_price': disc_price,
+        'stock_buy': stock_buy,
+      });
+
+      return true;
+    } catch (error) {
+      print(error.toString());
+      return false;
+    }
+  }
+
+  static deleteCartById(String cart_id) async {
+    try {
+      await FirebaseFirestore.instance.collection('cart').doc(cart_id).delete();
       return true;
     } catch (error) {
       print(error.toString());

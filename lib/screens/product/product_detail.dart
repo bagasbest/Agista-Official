@@ -16,9 +16,20 @@ class ProductDetail extends StatefulWidget {
   var product;
   var role;
   var categoryList;
+  var uid;
+  var name;
+  var phone;
+  var address;
 
-  ProductDetail(
-      {required this.product, required this.role, required this.categoryList});
+  ProductDetail({
+    required this.product,
+    required this.role,
+    required this.categoryList,
+    required this.uid,
+    required this.name,
+    required this.phone,
+    required this.address,
+  });
 
   @override
   State<ProductDetail> createState() => _ProductDetailState();
@@ -32,7 +43,7 @@ class _ProductDetailState extends State<ProductDetail> {
     decimalDigits: 0,
   );
   bool _visible = false;
-
+  final _formKey = GlobalKey<FormState>();
 
   var _stock = TextEditingController();
 
@@ -79,7 +90,7 @@ class _ProductDetailState extends State<ProductDetail> {
                           InkWell(
                             onTap: () {
                               if (widget.product["stock"] > 0) {
-                                inputStock();
+                                inputStock("cart");
                               } else {
                                 toast('Stok produk ini sedang kosong!');
                               }
@@ -176,8 +187,9 @@ class _ProductDetailState extends State<ProductDetail> {
                       Row(
                         children: [
                           Text(
-                            (widget.product["disc_percentage"]>0)?
-                            "${formattedCurrency.format(widget.product["disc_price"])}" : "${formattedCurrency.format(widget.product["price"])}",
+                            (widget.product["disc_percentage"] > 0)
+                                ? "${formattedCurrency.format(widget.product["disc_price"])}"
+                                : "${formattedCurrency.format(widget.product["price"])}",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -298,7 +310,7 @@ class _ProductDetailState extends State<ProductDetail> {
                       InkWell(
                         onTap: (widget.product["stock"] > 0)
                             ? () {
-                                inputStock();
+                                inputStock("checkout");
                               }
                             : null,
                         child: Container(
@@ -398,7 +410,7 @@ class _ProductDetailState extends State<ProductDetail> {
     );
   }
 
-  inputStock() {
+  inputStock(String option) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -409,144 +421,234 @@ class _ProductDetailState extends State<ProductDetail> {
               Radius.circular(16),
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Center(
-                child: Text(
-                  'Kategori Produk',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Center(
+                  child: Text(
+                    'Kategori Produk',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(
-                height: 5,
-              ),
-              Container(
-                margin: EdgeInsets.only(
-                  left: MediaQuery.of(context).size.width * 0.1,
-                  right: MediaQuery.of(context).size.width * 0.1,
+                const SizedBox(
+                  height: 5,
                 ),
-                child:
-                    const Divider(height: 3, thickness: 3, color: Colors.grey),
-              ),
-              SizedBox(
-                height: 16,
-              ),
-              TextFormField(
-                controller: _stock,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                    hintText: "Input stok pembelian",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: AppCommon.green, width: 1)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: AppCommon.green, width: 1)),
-                    // Focused Border
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: AppCommon.green, width: 1)),
-                    // Focused Error Border
-                    focusedErrorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.red, width: 1))),
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Stok Produk tidak boleh kosong';
-                  } else if (int.parse(value) > widget.product["stock"]) {
-                    return 'Maksimum ${widget.product["stock"]} pcs';
-                  } else {
-                    return null;
-                  }
-                },
-              ),
-              SizedBox(
-                height: 16,
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    InkWell(
-                      child: Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(7),
-                              color: Colors.grey),
-                          child: Text("Batal",
-                              style: TextStyle(color: Colors.white))),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    /// LOADING INDIKATOR
-                    (_visible)
-                        ? Padding(
-                      padding: const EdgeInsets.only(bottom: 30),
-                      child: Visibility(
-                        visible: _visible,
-                        child: const SpinKitRipple(
-                          color: AppCommon.green,
-                        ),
+                Container(
+                  margin: EdgeInsets.only(
+                    left: MediaQuery.of(context).size.width * 0.1,
+                    right: MediaQuery.of(context).size.width * 0.1,
+                  ),
+                  child: const Divider(
+                      height: 3, thickness: 3, color: Colors.grey),
+                ),
+                SizedBox(
+                  height: 16,
+                ),
+                TextFormField(
+                  controller: _stock,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                      hintText: "Input stok pembelian",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      // Focused Border
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      // Focused Error Border
+                      focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.red, width: 1))),
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Stok Produk tidak boleh kosong';
+                    } else if (int.parse(value) > widget.product["stock"]) {
+                      return 'Maksimum ${widget.product["stock"]} pcs';
+                    } else {
+                      return null;
+                    }
+                  },
+                ),
+                SizedBox(
+                  height: 16,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(7),
+                                color: Colors.grey),
+                            child: Text("Batal",
+                                style: TextStyle(color: Colors.white))),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
                       ),
-                    )
-                        : Container(),
-                    SizedBox(
-                      width: 16,
-                    ),
-                    InkWell(
-                      child: Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(7),
-                            color: AppCommon.green,
-                          ),
-                          child: Text("Konfirmasi",
-                              style: TextStyle(color: Colors.white))),
-                      onTap: () async {
-                        // Implement saving logic here
-                        setState(() {
-                          _visible = true;
-                        });
 
+                      /// LOADING INDIKATOR
+                      (_visible)
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 30),
+                              child: Visibility(
+                                visible: _visible,
+                                child: const SpinKitRipple(
+                                  color: AppCommon.green,
+                                ),
+                              ),
+                            )
+                          : Container(),
+                      SizedBox(
+                        width: 16,
+                      ),
+                      InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(7),
+                              color: AppCommon.green,
+                            ),
+                            child: Text("Konfirmasi",
+                                style: TextStyle(color: Colors.white))),
+                        onTap: () async {
+                          if (_formKey.currentState!.validate()) {
+                            // Implement saving logic here
+                            setState(() {
+                              _visible = true;
+                            });
 
-                        bool isSuccessfully = await DatabaseService.addToCart(widget.product, _stock.text);
+                            if (option == "cart") {
+                              bool isSuccessfully =
+                                  await DatabaseService.addToCart(
+                                      widget.product, _stock.text);
 
-                        if(isSuccessfully) {
-                          setState(() {
-                            _visible = false;
-                          });
-                          toast('Berhasil menambahkan produk kedalam keranjang!');
-                          Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (context) => HomeScreen()),
-                                  (Route<dynamic> route) => false);
-                        } else {
-                          setState(() {
-                            _visible = false;
-                          });
-                          toast('Gagal menambahkan produk kedalam keranjang, silahkan cek koneksi internet anda dan coba lagi!');
-                        }
+                              if (isSuccessfully) {
+                                setState(() {
+                                  _visible = false;
+                                });
+                                toast(
+                                    'Berhasil menambahkan produk kedalam keranjang!');
+                                Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(
+                                        builder: (context) => HomeScreen()),
+                                    (Route<dynamic> route) => false);
+                              } else {
+                                setState(() {
+                                  _visible = false;
+                                });
+                                toast(
+                                    'Gagal menambahkan produk kedalam keranjang, silahkan cek koneksi internet anda dan coba lagi!');
+                              }
+                            } else if (option == "checkout") {
+                              DateTime now = DateTime.now();
+                              int transactionId = now.millisecondsSinceEpoch;
+                              String dateTime =
+                                  DateFormat('dd MMM yyyy, HH:mm').format(now);
 
+                              num totalTransaction = 0;
+                              if (widget.product["disc_percentage"] > 0) {
+                                totalTransaction = widget.product["disc_price"] * num.parse(_stock.text);
+                              } else {
+                                totalTransaction = widget.product["price"] * num.parse(_stock.text);
+                              }
 
-                      },
-                    ),
-                  ],
+                              /// CREATE TRANSACTION
+                              bool isSuccessfully1 =
+                                  await DatabaseService.createTransaction(
+                                      transactionId,
+                                      widget.uid,
+                                      widget.name,
+                                      widget.phone,
+                                      widget.address,
+                                      totalTransaction,
+                                      dateTime,
+                                      "Menunggu Konfirmasi Admin");
+
+                              DateTime now2 = DateTime.now();
+                              int transactionProductId =
+                                  now2.millisecondsSinceEpoch;
+
+                              String product_id = widget.product["product_id"];
+                              String user_id = widget.uid;
+                              String name = widget.product["name"];
+                              num price = widget.product["price"];
+                              num stock_before = widget.product["stock"];
+                              String description =
+                                  widget.product["description"];
+                              String category = widget.product["category"];
+                              List<dynamic> image = widget.product['image'];
+                              num sold = widget.product["sold"];
+                              num disc_percentage =
+                                  widget.product["disc_percentage"];
+                              num disc_price = widget.product["disc_price"];
+                              num stock_buy = num.parse(_stock.text);
+
+                              /// CREATE TRANSACTION_PRODUCT
+                              bool isSuccessfully2 = await DatabaseService
+                                  .createTransactionProduct(
+                                transactionProductId.toString(),
+                                transactionId.toString(),
+                                product_id,
+                                user_id,
+                                name,
+                                price,
+                                stock_before,
+                                description,
+                                category,
+                                image,
+                                sold,
+                                disc_percentage,
+                                disc_price,
+                                stock_buy,
+                              );
+
+                              if (isSuccessfully1 && isSuccessfully2) {
+                                setState(() {
+                                  _visible = false;
+                                });
+                                toast(
+                                    'Berhasil melakukan checkout, silahkan lanjutkan ke halaman transaksi!');
+                                Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(
+                                        builder: (context) => HomeScreen()),
+                                    (Route<dynamic> route) => false);
+                              } else {
+                                setState(() {
+                                  _visible = false;
+                                });
+                                toast(
+                                    'Gagal melakukan checkout produk ini, silahkan cek koneksi internet anda dan coba lagi!');
+                              }
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(
-                height: 16,
-              ),
-            ],
+                const SizedBox(
+                  height: 16,
+                ),
+              ],
+            ),
           ),
           elevation: 10,
         );

@@ -9,11 +9,19 @@ class ProductList extends StatelessWidget {
   final List<DocumentSnapshot> document;
   final String role;
   final List<String> categoryList;
+  final String uid;
+  final String name;
+  final String phone;
+  final String address;
 
   ProductList({
     required this.document,
     required this.role,
     required this.categoryList,
+    required this.uid,
+    required this.name,
+    required this.phone,
+    required this.address,
   });
 
   @override
@@ -25,7 +33,7 @@ class ProductList extends StatelessWidget {
       mainAxisSpacing: 10,
       itemCount: document.length,
       itemBuilder: (context, i) {
-        String name = document[i]['name'].toString();
+        String nameProduct = document[i]['name'].toString();
         int price = document[i]['price'];
         int disc_percentage = document[i]['disc_percentage'];
         int disc_price = document[i]['disc_price'];
@@ -40,7 +48,15 @@ class ProductList extends StatelessWidget {
         return GestureDetector(
           onTap: () {
             Route route = MaterialPageRoute(
-              builder: (context) => ProductDetail(product: document[i], role: role, categoryList: categoryList),
+              builder: (context) => ProductDetail(
+                product: document[i],
+                role: role,
+                categoryList: categoryList,
+                uid: uid,
+                name: name,
+                phone: phone,
+                address: address,
+              ),
             );
             Navigator.push(context, route);
           },
@@ -70,7 +86,7 @@ class ProductList extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
-                      name,
+                      nameProduct,
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 14,
@@ -93,8 +109,9 @@ class ProductList extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
-                        (disc_percentage>0)?
-                      "${formattedCurrency.format(disc_price)}" : "${formattedCurrency.format(price)}",
+                      (disc_percentage > 0)
+                          ? "${formattedCurrency.format(disc_price)}"
+                          : "${formattedCurrency.format(price)}",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -104,34 +121,37 @@ class ProductList extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  (disc_percentage > 0) ? Row(
-                    children: [
-                      Container(
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(3),
-                              color: Colors.pink[100]
-                          ),
-                          padding: EdgeInsets.all(5),
-                          margin: EdgeInsets.only(left: 10),
-                          child: Text(
-                            "$disc_percentage%",
-                            style: TextStyle(
-                                color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
-                          )),
-                      SizedBox(width: 10,),
-                      Text(
-                        "${formattedCurrency.format(price)}",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.black26,
-                          decoration: TextDecoration.lineThrough,
-                          fontSize: 12
-                        ),
-                      ),
-                    ],
-                  ) : Container(),
+                  (disc_percentage > 0)
+                      ? Row(
+                          children: [
+                            Container(
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(3),
+                                    color: Colors.pink[100]),
+                                padding: EdgeInsets.all(5),
+                                margin: EdgeInsets.only(left: 10),
+                                child: Text(
+                                  "$disc_percentage%",
+                                  style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12),
+                                )),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Text(
+                              "${formattedCurrency.format(price)}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: Colors.black26,
+                                  decoration: TextDecoration.lineThrough,
+                                  fontSize: 12),
+                            ),
+                          ],
+                        )
+                      : Container(),
                   SizedBox(
                     height: 10,
                   ),
