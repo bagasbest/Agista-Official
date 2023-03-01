@@ -1,3 +1,4 @@
+import 'package:agistaofficial/screens/transaction/transaction_detail.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,8 +17,8 @@ class TransactionScreen extends StatefulWidget {
 
 class _TransactionScreenState extends State<TransactionScreen> {
   List<String> statusList = [
+    "Semua",
     "Menunggu Konfirmasi Admin",
-    "Lengkapi Alamat Anda",
     "Siap Untuk COD",
     "Transaksi Selesai",
     "Transaksi Dibatalkan"
@@ -54,7 +55,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
               width: MediaQuery.of(context).size.width,
               child: DropdownSearch<String>(
                 mode: Mode.MENU,
-                showSearchBox: true,
+                showSearchBox: false,
                 dropdownSearchDecoration: InputDecoration(
                   labelText: "Pilih Status Transaksi",
                 ),
@@ -69,11 +70,18 @@ class _TransactionScreenState extends State<TransactionScreen> {
             Container(
               margin: EdgeInsets.only(top: 170),
               child: StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection('transaction')
-                    .where("user_id",
-                        isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                    .snapshots(),
+                stream: (status == "" || status == "Semua")
+                    ? FirebaseFirestore.instance
+                        .collection('transaction')
+                        .where("user_id",
+                            isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                        .snapshots()
+                    : FirebaseFirestore.instance
+                        .collection('transaction')
+                        .where("user_id",
+                            isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                        .where("status", isEqualTo: status)
+                        .snapshots(),
                 builder: (BuildContext context,
                     AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.hasData) {
@@ -112,38 +120,58 @@ class _TransactionScreenState extends State<TransactionScreen> {
           symbol: 'Rp',
           decimalDigits: 0,
         );
-        return Container(
-          margin: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 16,
-          ),
-          child: Card(
-            elevation: 10,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            child: Container(
-              padding: EdgeInsets.all(10),
-              width: MediaQuery.of(context).size.width - 70,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: Colors.white,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: MediaQuery.of(context).size.width * 0.75,
-                        padding: const EdgeInsets.only(
-                          left: 8,
-                          right: 8,
-                          bottom: 5,
+        return InkWell(
+          onTap: () {
+            Route route = MaterialPageRoute(
+                builder: (context) =>
+                    TransactionDetail(
+                        document: document[i]
+                    ));
+            Navigator.push(context, route);
+          },
+          child: Container(
+            margin: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: 16,
+            ),
+            child: Card(
+              elevation: 10,
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: Container(
+                padding: EdgeInsets.all(10),
+                width: MediaQuery.of(context).size.width - 70,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.75,
+                          padding: const EdgeInsets.only(
+                            right: 8,
+                          ),
+                          child: Text(
+                            'Nama: $user_name',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
-                        child: Text(
-                          'Nama: $user_name',
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Text(
+                          'Tanggal: $date_time',
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
@@ -151,34 +179,47 @@ class _TransactionScreenState extends State<TransactionScreen> {
                             fontSize: 14,
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Text(
                           'Total Transaksi: ${formattedCurrency.format(total_transaction)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 16,
                             color: Colors.red,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  InkWell(
-                    onTap: () {},
-                    child: Icon(
-                      Icons.delete,
-                      size: 35,
-                      color: Colors.redAccent,
+                        SizedBox(
+                          height: 16,
+                        ),
+                        Container(
+                            padding: EdgeInsets.symmetric(
+                              vertical: 3,
+                              horizontal: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(5),
+                              color: (status == "Menunggu Konfirmasi Admin")
+                                  ? Colors.orange
+                                  : (status == "Siap Untuk COD")
+                                      ? Colors.blue
+                                      : (status == "Transaksi Selesai")
+                                          ? Colors.green
+                                          : Colors.red,
+                            ),
+                            child: Text(
+                              status,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ))
+                      ],
                     ),
-                  )
-                ],
+                  ],
+                ),
               ),
             ),
           ),

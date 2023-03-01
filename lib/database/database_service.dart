@@ -252,4 +252,28 @@ class DatabaseService {
       return false;
     }
   }
+
+  static cancelTransaction(String transaction_id) async {
+    try {
+      await FirebaseFirestore.instance.collection('transaction').doc(transaction_id).update({
+        'status': 'Transaksi Dibatalkan',
+      });
+      return true;
+    } catch (error) {
+      print(error.toString());
+      return false;
+    }
+  }
+
+  static accTransaction(String transactionId)  async {
+    try {
+      await FirebaseFirestore.instance.collection('transaction').doc(transactionId).update({
+        'status': 'Siap Untuk COD',
+      });
+      return true;
+    } catch (error) {
+      print(error.toString());
+      return false;
+    }
+  }
 }
