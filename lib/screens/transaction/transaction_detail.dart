@@ -11,9 +11,11 @@ import '../../util/themes.dart';
 
 class TransactionDetail extends StatefulWidget {
   final DocumentSnapshot document;
+  final String role;
 
   TransactionDetail({
     required this.document,
+    required this.role,
   });
 
   @override
@@ -22,8 +24,11 @@ class TransactionDetail extends StatefulWidget {
 
 class _TransactionDetailState extends State<TransactionDetail> {
   String role = "";
-  String adminNumber = "081234567890";
+  String adminNumber = "082214300463";
   bool isAcc = false;
+  List<DocumentSnapshot> documents = [];
+  var _receiverName = TextEditingController();
+  var _address = TextEditingController();
 
   var formattedCurrency = NumberFormat.currency(
     locale: 'id_ID',
@@ -45,6 +50,14 @@ class _TransactionDetailState extends State<TransactionDetail> {
         .then((value) {
       setState(() {
         role = value.data()!["role"];
+        var nowUid = value.data()!["uid"];
+        if(nowUid == widget.document["user_id"]) {
+          _receiverName.text = value.data()!["receiver_name"];
+          _address.text = value.data()!["address"];
+        }else {
+          _receiverName.text = widget.document["receiver_name"];
+          _address.text = widget.document["user_address"];
+        }
       });
     });
   }
@@ -81,14 +94,22 @@ class _TransactionDetailState extends State<TransactionDetail> {
                           fontWeight: FontWeight.bold,
                           fontSize: 18),
                     ),
-                    (widget.document["status"] != "Transaksi Dibatalkan")
+                    (!isAcc)
                         ? InkWell(
                             child: Icon(
                               Icons.delete,
                               color: Colors.white,
                             ),
                             onTap: () {
-                              confirmDeleteTransaction();
+                              print(widget.document["status"]);
+                              if (widget.document["status"] !=
+                                      "Transaksi Selesai" &&
+                                  widget.document["status"] !=
+                                      "Transaksi Dibatalkan") {
+                                confirmCancelTransaction();
+                              } else {
+                                confirmDeleteTransaction();
+                              }
                             },
                           )
                         : Container(),
@@ -145,27 +166,38 @@ class _TransactionDetailState extends State<TransactionDetail> {
                             ),
                             (role == "admin" &&
                                     (widget.document["status"] ==
-                                        "Menunggu Konfirmasi Admin") && !isAcc)
-                                ? InkWell(
-                              onTap: () {
-                                confirmAccTransaction();
-                              },
-                              child: Container(
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(5),
-                                          color: AppCommon.green),
-                                      child: Center(
-                                        child: Text(
-                                          'Konfirmasi Transaksi',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
+                                        "Menunggu Konfirmasi Admin") &&
+                                    !isAcc)
+                                ? Column(
+                                    children: [
+                                      InkWell(
+                                        onTap: () {
+                                          confirmAccTransaction();
+                                        },
+                                        child: Container(
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                              color: AppCommon.green),
+                                          child: Center(
+                                            child: Text(
+                                              'Konfirmasi Transaksi',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                )
+                                      SizedBox(
+                                        height: 16,
+                                      ),
+                                      Text(
+                                          'Konformasi oleh admin di butuhkan agar produk yang akan di berikan ketika COD sesuai dan tidak Out of Stock!'),
+                                    ],
+                                  )
                                 : Container(),
                             (widget.document["status"] !=
                                     "Transaksi Dibatalkan")
@@ -203,7 +235,8 @@ class _TransactionDetailState extends State<TransactionDetail> {
                                                     children: [
                                                       InkWell(
                                                         onTap: () {
-                                                          openDialer(adminNumber);
+                                                          openDialer(
+                                                              adminNumber);
                                                         },
                                                         child: Container(
                                                           decoration: BoxDecoration(
@@ -314,7 +347,9 @@ class _TransactionDetailState extends State<TransactionDetail> {
                                                     children: [
                                                       InkWell(
                                                         onTap: () {
-                                                          openDialer(widget.document["user_phone"]);
+                                                          openDialer(widget
+                                                                  .document[
+                                                              "user_phone"]);
                                                         },
                                                         child: Container(
                                                           decoration: BoxDecoration(
@@ -358,7 +393,9 @@ class _TransactionDetailState extends State<TransactionDetail> {
                                                       ),
                                                       InkWell(
                                                         onTap: () {
-                                                          whatsapp(widget.document["user_phone"]);
+                                                          whatsapp(widget
+                                                                  .document[
+                                                              "user_phone"]);
                                                         },
                                                         child: Container(
                                                           decoration: BoxDecoration(
@@ -405,6 +442,149 @@ class _TransactionDetailState extends State<TransactionDetail> {
                                                 ],
                                               ),
                                       ],
+                                    ),
+                                  )
+                                : Container()
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 16,
+                    ),
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 5,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Informasi Tambahan',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              child: Divider(
+                                thickness: 1,
+                              ),
+                            ),
+                            Text(
+                              'Produk akan dikirim ke: ',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                controller: _address,
+                                decoration: InputDecoration(
+                                  hintText: "Input alamat lengkap",
+                                  enabled: (role == "user") ? true : false,
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                          color: AppCommon.green, width: 1)),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                          color: AppCommon.green, width: 1)),
+                                  // Focused Border
+                                  focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                          color: AppCommon.green, width: 1)),
+                                ),
+                                maxLines: 5,
+                              ),
+                            ),
+                            SizedBox(
+                              height: 16,
+                            ),
+                            Text(
+                              'Atas Nama / Penerima: ',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                controller: _receiverName,
+                                decoration: InputDecoration(
+                                  hintText: "Input Nama Lengkap",
+                                  enabled: (role == "user") ? true : false,
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                          color: AppCommon.green, width: 1)),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                          color: AppCommon.green, width: 1)),
+                                  // Focused Border
+                                  focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                          color: AppCommon.green, width: 1)),
+                                ),
+                                maxLines: 1,
+                              ),
+                            ),
+                            SizedBox(
+                              height: 16,
+                            ),
+                            (role == "user")
+                                ? InkWell(
+                                    onTap: () async {
+                                      if (_address.text != "" &&
+                                          _receiverName.text != "") {
+                                        await DatabaseService.updateAddress(
+                                            _address.text,
+                                            _receiverName.text,
+                                            widget.document["user_id"]);
+
+                                        await DatabaseService
+                                            .saveAdditionalInfoTransaction(
+                                                _address.text,
+                                                _receiverName.text,
+                                                widget.document[
+                                                    "transaction_id"]);
+                                        toast(
+                                            'Sukses memperbarui informasi tambahan');
+                                      } else {
+                                        toast(
+                                            'Mohon isi 2 kolom diatas dengan informasi yang sesuai');
+                                      }
+                                    },
+                                    child: Container(
+                                      height: 40,
+                                      margin:
+                                          EdgeInsets.symmetric(horizontal: 10),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        color: AppCommon.green,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          'Simpan Informasi Tambahan',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   )
                                 : Container()
@@ -466,6 +646,85 @@ class _TransactionDetailState extends State<TransactionDetail> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
+                  'Konfirmasi Menghapus Transaksi',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Divider(
+                    thickness: 1,
+                  ),
+                ),
+                Text('Apakah anda yakin ingin menghapus transaksi ini ?'),
+                SizedBox(
+                  height: 16,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(7),
+                                color: Colors.grey),
+                            child: Text("Tidak",
+                                style: TextStyle(color: Colors.white))),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      SizedBox(
+                        width: 16,
+                      ),
+                      InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(7),
+                              color: AppCommon.green,
+                            ),
+                            child: Text("Ya",
+                                style: TextStyle(color: Colors.white))),
+                        onTap: () async {
+                          // Implement saving logic here
+                          await DatabaseService.deleteTransaction(
+                              widget.document["transaction_id"]);
+
+                          await DatabaseService.deleteTransactionProduct(
+                              widget.document["transaction_id"], documents);
+
+                          Navigator.of(context).pop();
+                          toast('Sukses menghapus transaksi!');
+                          setState(() {
+                            isAcc = true;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  confirmCancelTransaction() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Form(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
                   'Konfirmasi Membatalkan Transaksi',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -513,8 +772,12 @@ class _TransactionDetailState extends State<TransactionDetail> {
                           // Implement saving logic here
                           await DatabaseService.cancelTransaction(
                               widget.document["transaction_id"]);
+
                           Navigator.of(context).pop();
                           toast('Sukses membatalkan transaksi!');
+                          setState(() {
+                            isAcc = true;
+                          });
                         },
                       ),
                     ],
@@ -537,13 +800,14 @@ class _TransactionDetailState extends State<TransactionDetail> {
     }
   }
 
-  whatsapp(String phoneNumber) async{
+  whatsapp(String phoneNumber) async {
     var contact = "+62${phoneNumber.substring(1)}";
-    var androidUrl = "whatsapp://send?phone=$contact&text=Halo, Bisakah kita berduskusi untuk menentukan lokasi COD transaksi Agista Official ?";
+    var androidUrl =
+        "whatsapp://send?phone=$contact&text=Halo, Bisakah kita berduskusi untuk menentukan lokasi COD transaksi Agista Official ?";
 
-    try{
+    try {
       await launchUrl(Uri.parse(androidUrl));
-    } on Exception{}
+    } on Exception {}
   }
 
   confirmAccTransaction() {
@@ -566,7 +830,8 @@ class _TransactionDetailState extends State<TransactionDetail> {
                     thickness: 1,
                   ),
                 ),
-                Text('Apakah anda yakin ingin bahwa produk telah siap, dan bersedia untuk melakukan COD bersama kustomer ini ?'),
+                Text(
+                    'Apakah anda yakin ingin bahwa produk telah siap, dan bersedia untuk melakukan COD bersama kustomer ini ?'),
                 SizedBox(
                   height: 16,
                 ),
@@ -604,7 +869,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
                           await DatabaseService.accTransaction(
                               widget.document["transaction_id"]);
                           Navigator.of(context).pop();
-                          toast('Sukses menyetujui transaksi!');
+                          toast('Siap Untuk COD!');
                           setState(() {
                             isAcc = true;
                           });
@@ -622,6 +887,8 @@ class _TransactionDetailState extends State<TransactionDetail> {
   }
 
   Widget cartList(List<DocumentSnapshot> document) {
+    documents.clear();
+    documents.addAll(document);
     return ListView.builder(
       physics: NeverScrollableScrollPhysics(),
       shrinkWrap: true,
@@ -632,7 +899,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
         int disc_percentage = document[i]['disc_percentage'];
         int disc_price = document[i]['disc_price'];
         List<dynamic> url = document[i]['image'];
-        
+
         return Padding(
           padding: const EdgeInsets.only(
             bottom: 16,

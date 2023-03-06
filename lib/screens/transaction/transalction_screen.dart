@@ -19,11 +19,29 @@ class _TransactionScreenState extends State<TransactionScreen> {
   List<String> statusList = [
     "Semua",
     "Menunggu Konfirmasi Admin",
-    "Siap Untuk COD",
     "Transaksi Selesai",
     "Transaksi Dibatalkan"
   ];
   String status = "";
+  String role = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeRole();
+  }
+
+  _initializeRole() async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .get()
+        .then((value) {
+      setState(() {
+        role = value.data()!["role"];
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,17 +89,28 @@ class _TransactionScreenState extends State<TransactionScreen> {
               margin: EdgeInsets.only(top: 170),
               child: StreamBuilder(
                 stream: (status == "" || status == "Semua")
-                    ? FirebaseFirestore.instance
-                        .collection('transaction')
-                        .where("user_id",
-                            isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                        .snapshots()
-                    : FirebaseFirestore.instance
-                        .collection('transaction')
-                        .where("user_id",
-                            isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                        .where("status", isEqualTo: status)
-                        .snapshots(),
+                    ? (role == "user")
+                        ? FirebaseFirestore.instance
+                            .collection('transaction')
+                            .where("user_id",
+                                isEqualTo:
+                                    FirebaseAuth.instance.currentUser!.uid)
+                            .snapshots()
+                        : FirebaseFirestore.instance
+                            .collection('transaction')
+                            .snapshots()
+                    : (role == "user")
+                        ? FirebaseFirestore.instance
+                            .collection('transaction')
+                            .where("user_id",
+                                isEqualTo:
+                                    FirebaseAuth.instance.currentUser!.uid)
+                            .where("status", isEqualTo: status)
+                            .snapshots()
+                        : FirebaseFirestore.instance
+                            .collection('transaction')
+                            .where("status", isEqualTo: status)
+                            .snapshots(),
                 builder: (BuildContext context,
                     AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.hasData) {
@@ -103,17 +132,18 @@ class _TransactionScreenState extends State<TransactionScreen> {
   }
 
   Widget transactionList(List<DocumentSnapshot> document) {
+    var docs = document.reversed.toList();
     return ListView.builder(
-      itemCount: document.length,
+      itemCount: docs.length,
       itemBuilder: (context, i) {
-        String date_time = document[i]['date_time'].toString();
-        String status = document[i]['status'].toString();
-        int total_transaction = document[i]['totalTransaction'];
-        String transaction_id = document[i]['transaction_id'].toString();
-        String user_address = document[i]['user_address'].toString();
-        String user_id = document[i]['user_id'].toString();
-        String user_name = document[i]['user_name'].toString();
-        String user_phone = document[i]['user_phone'].toString();
+        String date_time = docs[i]['date_time'].toString();
+        String status = docs[i]['status'].toString();
+        int total_transaction = docs[i]['totalTransaction'];
+        String transaction_id = docs[i]['transaction_id'].toString();
+        String user_address = docs[i]['user_address'].toString();
+        String user_id = docs[i]['user_id'].toString();
+        String user_name = docs[i]['user_name'].toString();
+        String user_phone = docs[i]['user_phone'].toString();
 
         var formattedCurrency = NumberFormat.currency(
           locale: 'id_ID',
@@ -123,9 +153,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
         return InkWell(
           onTap: () {
             Route route = MaterialPageRoute(
-                builder: (context) =>
-                    TransactionDetail(
-                        document: document[i]
+                builder: (context) => TransactionDetail(
+                      document: docs[i],
+                      role: role,
                     ));
             Navigator.push(context, route);
           },
@@ -137,8 +167,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
             ),
             child: Card(
               elevation: 10,
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
               child: Container(
                 padding: EdgeInsets.all(10),
                 width: MediaQuery.of(context).size.width - 70,

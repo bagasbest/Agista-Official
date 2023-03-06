@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.agista.agistaofficial">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
    <application
         android:label="agistaofficial"
         android:name="${applicationName}"

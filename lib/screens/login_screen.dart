@@ -2,11 +2,13 @@ import 'package:agistaofficial/screens/register_screen.dart';
 import 'package:agistaofficial/util/common.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+import '../database/database_service.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -160,6 +162,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               /// cek apakah sudah terdaftar no tersebut
                               var isStored = await isPhoneNumberStored(_phone.text);
 
+
+
                               setState(() {
                                 _visible = false;
                               });
@@ -244,15 +248,24 @@ class _LoginScreenState extends State<LoginScreen> {
       String storedPhoneNumber = document.get("phone");
       String email = document.get("email");
       String pwd = document.get("password");
+      String uid = document.get("uid");
 
       // 4. Compare the retrieved phone number with the desired phone number
       if (storedPhoneNumber == phoneNumber) {
         // 5. If a match is found, return true
         await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pwd);
+
+        /// MASUK KE HOMEPAGE JIKA SUKSES LOGIN
+        if(email == 'admin@gmail.com') {
+          String? token = await FirebaseMessaging.instance.getToken();
+          await DatabaseService.updateAdminToken(token, uid);
+        }
+
         return true;
-      } else {
+      } else if(i == documents.length-1) {
         toast('Nomor handphone anda belum terdaftar di aplikasi Agista Official');
       }
+      i++;
     }
 
     // 6. If no match is found, return false

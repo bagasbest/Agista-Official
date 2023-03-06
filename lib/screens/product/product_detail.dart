@@ -1,14 +1,19 @@
+import 'dart:convert';
+
 import 'package:agistaofficial/database/database_service.dart';
 import 'package:agistaofficial/screens/home_screen.dart';
 import 'package:agistaofficial/screens/login_screen.dart';
 import 'package:agistaofficial/screens/product/product_edit_screen.dart';
+import 'package:agistaofficial/util/google_sheet.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
+import '../../util/SheetsColumn.dart';
 import '../../util/common.dart';
 import '../../util/themes.dart';
 
@@ -18,6 +23,7 @@ class ProductDetail extends StatefulWidget {
   var categoryList;
   var uid;
   var name;
+  var receiverName;
   var phone;
   var address;
 
@@ -27,6 +33,7 @@ class ProductDetail extends StatefulWidget {
     required this.categoryList,
     required this.uid,
     required this.name,
+    required this.receiverName,
     required this.phone,
     required this.address,
   });
@@ -42,14 +49,17 @@ class _ProductDetailState extends State<ProductDetail> {
     symbol: 'Rp',
     decimalDigits: 0,
   );
+  String adminToken = "";
   bool _visible = false;
   final _formKey = GlobalKey<FormState>();
+  num stockAvailable = 0;
 
   var _stock = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    stockAvailable = widget.product["stock"];
     _initializeData();
   }
 
@@ -275,7 +285,7 @@ class _ProductDetailState extends State<ProductDetail> {
                         height: 5,
                       ),
                       Text(
-                        "Stok tersedia: ${widget.product["stock"]}",
+                        "Stok tersedia: $stockAvailable",
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
@@ -307,32 +317,55 @@ class _ProductDetailState extends State<ProductDetail> {
                       SizedBox(
                         height: 15,
                       ),
-                      InkWell(
-                        onTap: (widget.product["stock"] > 0)
-                            ? () {
-                                inputStock("checkout");
-                              }
-                            : null,
-                        child: Container(
-                          width: MediaQuery.of(context).size.width,
-                          height: 50,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: (widget.product["stock"] > 0)
-                                  ? AppCommon.green
-                                  : Colors.grey),
-                          child: Center(
-                            child: Text(
-                              'Checkout Produk',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
+                      (widget.role == "user")
+                          ? InkWell(
+                              onTap: (widget.product["stock"] > 0)
+                                  ? () {
+                                      inputStock("checkout");
+                                    }
+                                  : null,
+                              child: Container(
+                                width: MediaQuery.of(context).size.width,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: (widget.product["stock"] > 0)
+                                        ? AppCommon.green
+                                        : Colors.grey),
+                                child: Center(
+                                  child: Text(
+                                    'Checkout Produk',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                      )
+                            )
+                          : InkWell(
+                              onTap: () {
+                                addStock();
+                              },
+                              child: Container(
+                                width: MediaQuery.of(context).size.width,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: AppCommon.green),
+                                child: Center(
+                                  child: Text(
+                                    'Tambahkan Stok Masuk',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
                     ],
                   ),
                 ),
@@ -565,22 +598,27 @@ class _ProductDetailState extends State<ProductDetail> {
 
                               num totalTransaction = 0;
                               if (widget.product["disc_percentage"] > 0) {
-                                totalTransaction = widget.product["disc_price"] * num.parse(_stock.text);
+                                totalTransaction =
+                                    widget.product["disc_price"] *
+                                        num.parse(_stock.text);
                               } else {
-                                totalTransaction = widget.product["price"] * num.parse(_stock.text);
+                                totalTransaction = widget.product["price"] *
+                                    num.parse(_stock.text);
                               }
 
                               /// CREATE TRANSACTION
                               bool isSuccessfully1 =
                                   await DatabaseService.createTransaction(
-                                      transactionId,
-                                      widget.uid,
-                                      widget.name,
-                                      widget.phone,
-                                      widget.address,
-                                      totalTransaction,
-                                      dateTime,
-                                      "Menunggu Konfirmasi Admin");
+                                transactionId,
+                                widget.uid,
+                                widget.name,
+                                widget.receiverName,
+                                widget.phone,
+                                widget.address,
+                                totalTransaction,
+                                dateTime,
+                                "Menunggu Konfirmasi Admin",
+                              );
 
                               DateTime now2 = DateTime.now();
                               int transactionProductId =
@@ -621,6 +659,15 @@ class _ProductDetailState extends State<ProductDetail> {
                               );
 
                               if (isSuccessfully1 && isSuccessfully2) {
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(AppCommon.adminUid)
+                                    .get()
+                                    .then((value) {
+                                  adminToken = value.data()!["token"];
+                                });
+                                sendPushMessage();
+
                                 setState(() {
                                   _visible = false;
                                 });
@@ -638,6 +685,198 @@ class _ProductDetailState extends State<ProductDetail> {
                                     'Gagal melakukan checkout produk ini, silahkan cek koneksi internet anda dan coba lagi!');
                               }
                             }
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(
+                  height: 16,
+                ),
+              ],
+            ),
+          ),
+          elevation: 10,
+        );
+      },
+    );
+  }
+
+  Future<void> sendPushMessage() async {
+    if (adminToken == '') {
+      print('Unable to send FCM message, no token exists.');
+      return;
+    }
+
+    try {
+      await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Authorization': 'key=${AppCommon.serverKey}',
+        },
+        body: jsonEncode(
+          <String, dynamic>{
+            'notification': <String, dynamic>{
+              'body': "Silahkan konfirmasi transaksi baru",
+              'title': "Agista Official",
+            },
+            'priority': 'high',
+            'data': <String, dynamic>{
+              'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+              'id': '1',
+              'status': 'done'
+            },
+            "to": adminToken,
+          },
+        ),
+      );
+      print('done');
+      print('$adminToken');
+    } catch (e) {
+      print("error push notification");
+    }
+  }
+
+  addStock() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(
+            side: BorderSide(color: Colors.black),
+            borderRadius: BorderRadius.all(
+              Radius.circular(16),
+            ),
+          ),
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Center(
+                  child: Text(
+                    'Stok Masuk',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 5,
+                ),
+                Container(
+                  margin: EdgeInsets.only(
+                    left: MediaQuery.of(context).size.width * 0.1,
+                    right: MediaQuery.of(context).size.width * 0.1,
+                  ),
+                  child: const Divider(
+                      height: 3, thickness: 3, color: Colors.grey),
+                ),
+                SizedBox(
+                  height: 16,
+                ),
+                TextFormField(
+                  controller: _stock,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                      hintText: "Input stok masuk",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      // Focused Border
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      // Focused Error Border
+                      focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.red, width: 1))),
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Stok Produk tidak boleh kosong';
+                    } else {
+                      return null;
+                    }
+                  },
+                ),
+                SizedBox(
+                  height: 16,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(7),
+                                color: Colors.grey),
+                            child: Text("Batal",
+                                style: TextStyle(color: Colors.white))),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+
+                      /// LOADING INDIKATOR
+                      (_visible)
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 30),
+                              child: Visibility(
+                                visible: _visible,
+                                child: const SpinKitRipple(
+                                  color: AppCommon.green,
+                                ),
+                              ),
+                            )
+                          : Container(),
+                      SizedBox(
+                        width: 16,
+                      ),
+                      InkWell(
+                        child: Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(7),
+                              color: AppCommon.green,
+                            ),
+                            child: Text("Konfirmasi",
+                                style: TextStyle(color: Colors.white))),
+                        onTap: () async {
+                          if (_formKey.currentState!.validate()) {
+                            // Implement saving logic here
+                            setState(() {
+                              _visible = true;
+                            });
+
+                            await DatabaseService.addStock(
+                              widget.product["product_id"],
+                              widget.product["stock"],
+                              num.parse(_stock.text),
+                            );
+
+                            stockAvailable = widget.product["stock"] +
+                                num.parse(_stock.text);
+
+                            toast('Sukses menambahkan stok masuk');
+
+                            setState(() {
+                              _visible = false;
+                            });
+                            Navigator.of(context).pop();
                           }
                         },
                       ),

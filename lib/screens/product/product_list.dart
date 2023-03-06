@@ -11,6 +11,7 @@ class ProductList extends StatelessWidget {
   final List<String> categoryList;
   final String uid;
   final String name;
+  final String receiverName;
   final String phone;
   final String address;
 
@@ -20,6 +21,7 @@ class ProductList extends StatelessWidget {
     required this.categoryList,
     required this.uid,
     required this.name,
+    required this.receiverName,
     required this.phone,
     required this.address,
   });
@@ -54,6 +56,7 @@ class ProductList extends StatelessWidget {
                 categoryList: categoryList,
                 uid: uid,
                 name: name,
+                receiverName: receiverName,
                 phone: phone,
                 address: address,
               ),

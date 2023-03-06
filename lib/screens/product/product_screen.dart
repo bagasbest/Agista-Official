@@ -28,6 +28,7 @@ class _ProductScreenState extends State<ProductScreen> {
   ];
 
   var _address = TextEditingController();
+  var _nameReceiver = TextEditingController();
   var _search = TextEditingController();
   var uid = "";
   var address = "";
@@ -36,6 +37,7 @@ class _ProductScreenState extends State<ProductScreen> {
   var search = "";
 
   String name = "";
+  String receiverName = "";
   String phone = "";
 
   @override
@@ -55,7 +57,11 @@ class _ProductScreenState extends State<ProductScreen> {
         address = value.data()!["address"];
         role = value.data()!["role"];
         name = value.data()!["name"];
+        receiverName = value.data()!["receiver_name"];
         phone = value.data()!["phone"];
+
+        print(phone);
+
       });
     });
   }
@@ -216,12 +222,13 @@ class _ProductScreenState extends State<ProductScreen> {
                         if (search != "") {
                           var i = 0;
                           snapshot.data!.docs.forEach((element) {
-                            String name = snapshot.data!.docs[i]['name'].toString().toLowerCase();
+                            String name = snapshot.data!.docs[i]['name']
+                                .toString()
+                                .toLowerCase();
                             if (!name.contains(search)) {
                               try {
-                                print("deteted wanbt: $i");
                                 dataList.remove(dataList[i]);
-                              }catch(err) {
+                              } catch (err) {
                                 print("Error: $err");
                               }
                             }
@@ -229,17 +236,17 @@ class _ProductScreenState extends State<ProductScreen> {
                           });
                         }
 
-
                         return (dataList.length > 0)
                             ? ProductList(
                                 document: dataList,
                                 role: role,
                                 categoryList: categoryList,
-                        uid: uid,
-                        name: name,
-                        phone: phone,
-                        address: address,
-                        )
+                                uid: uid,
+                                name: name,
+                                receiverName: receiverName,
+                                phone: phone,
+                                address: address,
+                              )
                             : _emptyData();
                       } else {
                         return _emptyData();
@@ -308,6 +315,39 @@ class _ProductScreenState extends State<ProductScreen> {
                 SizedBox(
                   height: 16,
                 ),
+                Text(
+                  'Atas Nama / Penerima: ',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: TextFormField(
+                    controller: _nameReceiver,
+                    decoration: InputDecoration(
+                      hintText: "Input Nama Lengkap",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                      // Focused Border
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: AppCommon.green, width: 1)),
+                    ),
+                    maxLines: 1,
+                  ),
+                ),
+                SizedBox(
+                  height: 16,
+                ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
@@ -339,17 +379,23 @@ class _ProductScreenState extends State<ProductScreen> {
                                 style: TextStyle(color: Colors.white))),
                         onTap: () async {
                           // Implement saving logic here
-                          Navigator.of(context).pop();
-                          var isSuccessUpdateAddress =
-                              await DatabaseService.updateAddress(
-                            _address.text,
-                            uid,
-                          );
-                          if (isSuccessUpdateAddress) {
-                            toast('Berhasil perbarui alamat');
-                            setState(() {
-                              address = _address.text;
-                            });
+                          if (_nameReceiver.text != "" && _address.text != "") {
+                            Navigator.of(context).pop();
+                            var isSuccessUpdateAddress =
+                                await DatabaseService.updateAddress(
+                              _address.text,
+                              _nameReceiver.text,
+                              uid,
+                            );
+                            if (isSuccessUpdateAddress) {
+                              toast('Berhasil perbarui alamat dan nama lengkap / penerima');
+                              setState(() {
+                                address = _address.text;
+                              });
+                            }
+                          } else {
+                            toast(
+                                'Mohon isi 2 kolom diatas dengan informasi yang sesuai');
                           }
                         },
                       ),

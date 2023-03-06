@@ -5,7 +5,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../util/SheetsColumn.dart';
+import '../../util/google_sheet.dart';
 import '../../util/themes.dart';
 
 class CartScreen extends StatefulWidget {
@@ -19,12 +22,13 @@ class _CartScreenState extends State<CartScreen> {
   var totalCartProduct = 0;
   List<bool> isChecked = [];
   List<DocumentSnapshot> cartData = [];
-  String name = "";
+  String userName = "";
+  String receiverName = "";
   String address = "";
   String role = "";
   String uid = "";
   String phone = "";
-
+  String adminToken = "";
   bool isTransaction = false;
 
   @override
@@ -43,7 +47,8 @@ class _CartScreenState extends State<CartScreen> {
         uid = value.data()!["uid"];
         address = value.data()!["address"];
         role = value.data()!["role"];
-        name = value.data()!["name"];
+        userName = value.data()!["name"];
+        receiverName = value.data()!["receiver_name"];
         phone = value.data()!["phone"];
       });
     });
@@ -61,14 +66,25 @@ class _CartScreenState extends State<CartScreen> {
               height: 100,
               padding: EdgeInsets.only(top: 30),
               color: AppCommon.green,
-              child: Center(
-                  child: Text(
-                'Keranjang',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18),
-              )),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(),
+                  Center(
+                      child: Text(
+                    'Keranjang',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18),
+                  )),
+                  (isTransaction)
+                      ? CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                      : Container(),
+                ],
+              ),
             ),
             Container(
               margin: EdgeInsets.only(top: 100, bottom: 70),
@@ -474,10 +490,12 @@ class _CartScreenState extends State<CartScreen> {
                       setState(() {
                         isTransaction = true;
                       });
+                      Navigator.of(context).pop();
                       // Implement saving logic here
                       DateTime now = DateTime.now();
                       int transactionId = now.millisecondsSinceEpoch;
-                      String dateTime = DateFormat('dd MMM yyyy, HH:mm').format(now);
+                      String dateTime =
+                          DateFormat('dd MMM yyyy, HH:mm').format(now);
                       num totalTransaction = 0;
                       for (int i = 0; i < cartData.length; i++) {
                         if (isChecked[i]) {
@@ -491,19 +509,17 @@ class _CartScreenState extends State<CartScreen> {
                         }
                       }
 
-
-
                       /// CREATE TRANSACTION
                       await DatabaseService.createTransaction(
-                        transactionId,
-                        uid,
-                        name,
-                        phone,
-                        address,
-                        totalTransaction,
+                          transactionId,
+                          uid,
+                          userName,
+                          receiverName,
+                          phone,
+                          address,
+                          totalTransaction,
                           dateTime,
-                        "Menunggu Konfirmasi Admin"
-                      );
+                          "Menunggu Konfirmasi Admin");
 
                       for (int i = 0; i < cartData.length; i++) {
                         if (isChecked[i]) {
@@ -559,6 +575,15 @@ class _CartScreenState extends State<CartScreen> {
                         i++;
                       });
 
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(AppCommon.adminUid)
+                          .get()
+                          .then((value) {
+                        adminToken = value.data()!["token"];
+                      });
+                      sendPushMessage();
+
                       setState(() {
                         isChecked.clear();
                         print(isChecked.toString());
@@ -566,7 +591,7 @@ class _CartScreenState extends State<CartScreen> {
                       });
 
                       toast('Berhasil membuat transakci baru!');
-                      Navigator.of(context).pop();
+
                     },
                   ),
                 ],
@@ -577,5 +602,41 @@ class _CartScreenState extends State<CartScreen> {
         );
       },
     );
+  }
+
+  Future<void> sendPushMessage() async {
+    if (adminToken == '') {
+      print('Unable to send FCM message, no token exists.');
+      return;
+    }
+
+    try {
+      await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Authorization': 'key=${AppCommon.serverKey}',
+        },
+        body: jsonEncode(
+          <String, dynamic>{
+            'notification': <String, dynamic>{
+              'body': "Silahkan konfirmasi transaksi baru",
+              'title': "Agista Official",
+            },
+            'priority': 'high',
+            'data': <String, dynamic>{
+              'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+              'id': '1',
+              'status': 'done'
+            },
+            "to": adminToken,
+          },
+        ),
+      );
+      print('done');
+      print('$adminToken');
+    } catch (e) {
+      print("error push notification");
+    }
   }
 }
